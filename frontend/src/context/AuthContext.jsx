@@ -1,5 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { logEvent } from '../utils/logger';
+import { API_URL } from '../utils/api';
 
 export const AuthContext = createContext();
 
@@ -7,12 +9,12 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  axios.defaults.withCredentials = true; // Send cookies with requests
+  axios.defaults.withCredentials = true;
 
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/auth/me');
+        const res = await axios.get(`${API_URL}/api/auth/me`);
         setUser(res.data.user);
       } catch (error) {
         setUser(null);
@@ -24,18 +26,21 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+    const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
     setUser(res.data.user);
+    logEvent('LOGIN', { email });
     return res.data;
   };
 
   const register = async (email, password) => {
-    const res = await axios.post('http://localhost:5000/api/auth/register', { email, password });
+    const res = await axios.post(`${API_URL}/api/auth/register`, { email, password });
+    logEvent('REGISTER', { email });
     return res.data;
   };
 
   const logout = async () => {
-    await axios.post('http://localhost:5000/api/auth/logout');
+    await axios.post(`${API_URL}/api/auth/logout`);
+    logEvent('LOGOUT', {});
     setUser(null);
   };
 

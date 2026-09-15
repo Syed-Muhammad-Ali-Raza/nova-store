@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
+import FilterSidebar from '../components/FilterSidebar';
+import { logEvent } from '../utils/logger';
+import { API_URL } from '../utils/api';
 
 const ProductCard = ({ product }) => {
   const { addToCart, cartItems } = useCart();
@@ -55,16 +58,37 @@ const ProductCard = ({ product }) => {
   );
 };
 
+const defaultFilters = { search: '', category: '', minPrice: '', maxPrice: '', inStock: '', sortBy: 'newest' };
+
 const ProductsPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState(defaultFilters);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/products');
-        setProducts(res.data);
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (filters.search) params.set('search', filters.search);
+        if (filters.category) params.set('category', filters.category);
+        if (filters.minPrice) params.set('minPrice', filters.minPrice);
+        if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+        if (filters.inStock) params.set('inStock', filters.inStock);
+        if (filters.sortBy && filters.sortBy !== 'newest') params.set('sortBy', filters.sortBy);
+        params.set('page', page);
+        params.set('limit', 12);
+
+        const res = await axios.get(`${API_URL}/api/products?${params.toString()}`);
+        const data = res.data;
+        setProducts(data.products);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+        setPage(data.page);
       } catch (err) {
         setError('Failed to load products. Is the backend running?');
       } finally {
@@ -72,27 +96,71 @@ const ProductsPage = () => {
       }
     };
     fetchProducts();
-  }, []);
+  }, [filters, page]);
 
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-gray-800 rounded-2xl h-80 animate-pulse border border-gray-700" />
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="text-red-400 bg-red-500/10 border border-red-500/50 rounded-xl p-4">{error}</div>;
-  }
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
+    <div className="flex gap-8">
+      <FilterSidebar filters={filters} onFilterChange={setFilters} />
+      <div className="flex-1 min-w-0">
+        <h2 className="text-2xl font-bold text-white mb-6">
+          {filters.category || 'All'} Products
+          {filters.search && <span className="text-indigo-400 ml-2 text-sm font-normal">— "{filters.search}"</span>}
+          <span className="text-gray-500 ml-2 text-sm font-normal">({total} results)</span>
+        </h2>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-gray-800 rounded-2xl h-80 animate-pulse border border-gray-700" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-red-400 bg-red-500/10 border border-red-500/50 rounded-xl p-4">{error}</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10 mb-4">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
+                >
+                  ← Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => handlePageChange(p)}
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                      p === page ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                  className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

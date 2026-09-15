@@ -5,6 +5,7 @@ import { CartProvider, useCart } from './context/CartContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Products from './pages/Products';
+import AdminPanel from './pages/AdminPanel';
 import CartDrawer from './components/CartDrawer';
 
 const Navbar = ({ onCartClick }) => {
@@ -28,6 +29,15 @@ const Navbar = ({ onCartClick }) => {
             <span className="text-gray-400 text-sm hidden sm:block">
               {user.email}
             </span>
+          )}
+
+          {user && user.role === 'admin' && (
+            <Link
+              to="/admin"
+              className="px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 text-sm font-medium transition-colors border border-indigo-500/30"
+            >
+              Admin Panel
+            </Link>
           )}
 
           {/* Cart Button */}
@@ -105,6 +115,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="/" element={<ProtectedLayout />} />
         </Routes>
       </Router>

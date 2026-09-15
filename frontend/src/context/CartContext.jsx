@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext } from 'react';
+import { logEvent } from '../utils/logger';
 
 export const CartContext = createContext();
 
@@ -13,6 +14,7 @@ export const CartProvider = ({ children }) => {
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
+      logEvent('ADD_TO_CART', { productId: product.id, productName: product.name });
       return [...prev, { ...product, quantity: 1 }];
     });
   };
@@ -31,7 +33,10 @@ export const CartProvider = ({ children }) => {
     );
   };
 
-  const clearCart = () => setCartItems([]);
+  const clearCart = () => {
+    logEvent('CHECKOUT', { totalItems: cartItems.length, totalPrice: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0) });
+    setCartItems([]);
+  };
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
