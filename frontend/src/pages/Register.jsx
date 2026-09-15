@@ -1,67 +1,98 @@
-import React, { useState, useContext } from 'react';
+import { useContext, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { Alert, AuthCard, AuthHeader, AuthLayout, FormField, PrimaryButton } from '../components/AuthUI';
 
 const Register = () => {
+  const { user, register } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const { register } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  if (user) return <Navigate to="/" replace />;
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setError('');
+    setIsSubmitting(true);
     try {
-      await register(email, password);
-      navigate('/login');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      const data = await register(email, password);
+      navigate('/verify-email-sent', {
+        state: { email, deliveryWarning: data.emailSent === false ? data.message : '' },
+      });
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to create your account.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const passwordIsValid = password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
-        <h2 className="text-3xl font-bold text-center text-white mb-8">Create Account</h2>
-        {error && <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded mb-6 text-sm">{error}</div>}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-          <button
+    <AuthLayout eyebrow="Create your secure NovStore account">
+      <AuthCard>
+        <AuthHeader
+          title="Create your account"
+          description="Save your cart, track orders, and secure your account with 2FA."
+        />
+        {error && <Alert>{error}</Alert>}
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <FormField
+            id="register-email"
+            label="Email address"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+          />
+          <FormField
+            id="register-password"
+            label="Password"
+            hint="8+ characters, letter and number"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Create a strong password"
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
+          <FormField
+            id="register-confirm-password"
+            label="Confirm password"
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            placeholder="Repeat your password"
+            autoComplete="new-password"
+            error={confirmPassword && password !== confirmPassword ? 'Passwords do not match.' : ''}
+            required
+          />
+          <PrimaryButton
             type="submit"
-            className="w-full py-3 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-colors duration-200"
+            disabled={isSubmitting || !email || !passwordIsValid || password !== confirmPassword}
           >
-            Sign Up
-          </button>
+            {isSubmitting ? 'Creating account…' : 'Create account'}
+          </PrimaryButton>
         </form>
-        <p className="mt-6 text-center text-gray-400 text-sm">
+        <p className="mt-7 text-center text-sm text-slate-400">
           Already have an account?{' '}
-          <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium">
+          <Link to="/login" className="font-semibold text-indigo-300 hover:text-indigo-200">
             Sign in
           </Link>
         </p>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthLayout>
   );
 };
 

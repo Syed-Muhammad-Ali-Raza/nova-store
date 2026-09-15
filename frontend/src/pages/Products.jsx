@@ -1,139 +1,181 @@
-import React, { useState } from 'react';
+/* eslint-disable react/prop-types */
+import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import FilterSidebar from '../components/FilterSidebar';
 import { useProducts } from '../hooks/useProducts';
 
+const fallbackImage = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=85';
+const defaultFilters = { search: '', category: '', minPrice: '', maxPrice: '', inStock: '', sortBy: 'newest' };
+
 const ProductCard = ({ product }) => {
   const { addToCart, cartItems } = useCart();
   const inCart = cartItems.find((item) => item.id === product.id);
+  const outOfStock = product.stock <= 0;
 
   return (
-    <div className="bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10 group flex flex-col">
-      <div className="relative overflow-hidden h-52">
+    <article className="group flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] transition duration-300 hover:-translate-y-1 hover:border-indigo-400/30 hover:bg-white/[0.055] hover:shadow-2xl hover:shadow-indigo-950/30">
+      <div className="relative aspect-[4/3] overflow-hidden bg-slate-900">
         <img
-          src={product.imageUrl || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&q=80'}
+          src={product.imageUrl || fallbackImage}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070912]/75 via-transparent to-transparent" />
+        <span className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
+          {product.category || 'General'}
+        </span>
         {product.stock <= 5 && (
-          <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-            Only {product.stock} left!
+          <span
+            className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md ${
+              outOfStock ? 'bg-rose-500/90 text-white' : 'bg-amber-300/90 text-slate-950'
+            }`}
+          >
+            {outOfStock ? 'Sold out' : `${product.stock} left`}
           </span>
         )}
       </div>
-      <div className="p-5 flex flex-col flex-1">
-        <h3 className="font-semibold text-white text-lg leading-snug">{product.name}</h3>
-        <p className="text-gray-400 text-sm mt-2 flex-1 line-clamp-2">{product.description}</p>
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700">
-          <span className="text-2xl font-bold text-indigo-400">${product.price.toFixed(2)}</span>
-          <button
-            onClick={() => addToCart(product)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 text-sm ${
-              inCart
-                ? 'bg-green-500/20 text-green-400 border border-green-500/50 hover:bg-green-500/30'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-            }`}
-          >
-            {inCart ? (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                In Cart ({inCart.quantity})
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-9H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                Add to Cart
-              </>
-            )}
-          </button>
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-start justify-between gap-4">
+          <h3 className="text-lg font-semibold leading-snug text-white">{product.name}</h3>
+          <span className="shrink-0 text-xl font-semibold text-indigo-300">${product.price.toFixed(2)}</span>
         </div>
+        <p className="mt-3 line-clamp-2 flex-1 text-sm leading-6 text-slate-400">{product.description}</p>
+        <button
+          type="button"
+          onClick={() => addToCart(product)}
+          disabled={outOfStock}
+          className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            inCart
+              ? 'border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15'
+              : 'bg-white text-slate-950 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500'
+          }`}
+        >
+          {outOfStock ? 'Currently unavailable' : inCart ? `In cart · ${inCart.quantity}` : 'Add to cart'}
+        </button>
       </div>
-    </div>
+    </article>
   );
 };
 
-const defaultFilters = { search: '', category: '', minPrice: '', maxPrice: '', inStock: '', sortBy: 'newest' };
+const pageWindow = (page, totalPages) => {
+  const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+  const end = Math.min(totalPages, start + 4);
+  return Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index);
+};
 
 const ProductsPage = () => {
   const [filters, setFilters] = useState(defaultFilters);
   const [page, setPage] = useState(1);
-
   const { data, isLoading, isError } = useProducts({ ...filters, page, limit: 12 });
-
   const products = data?.products ?? [];
   const totalPages = data?.totalPages ?? 1;
   const total = data?.total ?? 0;
 
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setPage(newPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const updateFilters = (nextFilters) => {
+    setFilters((current) => (typeof nextFilters === 'function' ? nextFilters(current) : nextFilters));
+    setPage(1);
+  };
+
+  const handlePageChange = (nextPage) => {
+    if (nextPage < 1 || nextPage > totalPages) return;
+    setPage(nextPage);
+    window.scrollTo({ top: 460, behavior: 'smooth' });
   };
 
   return (
-    <div className="flex gap-8">
-      <FilterSidebar filters={filters} onFilterChange={setFilters} />
-      <div className="flex-1 min-w-0">
-        <h2 className="text-2xl font-bold text-white mb-6">
-          {filters.category || 'All'} Products
-          {filters.search && <span className="text-indigo-400 ml-2 text-sm font-normal">— "{filters.search}"</span>}
-          <span className="text-gray-500 ml-2 text-sm font-normal">({total} results)</span>
-        </h2>
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-gray-800 rounded-2xl h-80 animate-pulse border border-gray-700" />
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="text-red-400 bg-red-500/10 border border-red-500/50 rounded-xl p-4">
-            Failed to load products. Is the backend running?
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+    <section aria-labelledby="catalog-heading">
+      <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300">The collection</p>
+          <h2 id="catalog-heading" className="mt-2 text-3xl font-semibold tracking-tight text-white">
+            {filters.category || 'All products'}
+          </h2>
+        </div>
+        <p className="text-sm text-slate-400" aria-live="polite">
+          {filters.search ? `Results for “${filters.search}” · ` : ''}
+          {total} {total === 1 ? 'item' : 'items'}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-7 lg:flex-row lg:items-start">
+        <FilterSidebar filters={filters} onFilterChange={updateFilters} />
+        <div className="min-w-0 flex-1">
+          {isLoading ? (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-label="Loading products">
+              {Array.from({ length: 6 }, (_, index) => (
+                <div
+                  key={index}
+                  className="aspect-[3/4] animate-pulse rounded-3xl border border-white/5 bg-white/[0.035]"
+                />
               ))}
             </div>
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-10 mb-4">
-                <button
-                  onClick={() => handlePageChange(page - 1)}
-                  disabled={page === 1}
-                  className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
-                >
-                  ← Prev
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => handlePageChange(p)}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                      p === page ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    {p}
-                  </button>
+          ) : isError ? (
+            <div
+              role="alert"
+              className="rounded-3xl border border-rose-400/20 bg-rose-400/10 p-8 text-center text-rose-200"
+            >
+              We couldn’t load the collection. Check your connection and try again.
+            </div>
+          ) : products.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-white/15 bg-white/[0.025] p-10 text-center">
+              <h3 className="text-xl font-semibold text-white">No products found</h3>
+              <p className="mt-2 text-slate-400">Try widening your price range or clearing the active filters.</p>
+              <button
+                type="button"
+                onClick={() => updateFilters(defaultFilters)}
+                className="mt-5 font-semibold text-indigo-300 hover:text-indigo-200"
+              >
+                Clear all filters
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
                 ))}
-                <button
-                  onClick={() => handlePageChange(page + 1)}
-                  disabled={page === totalPages}
-                  className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
-                >
-                  Next →
-                </button>
               </div>
-            )}
-          </>
-        )}
+              {totalPages > 1 && (
+                <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Product pagination">
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page === 1}
+                    className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 disabled:opacity-30"
+                  >
+                    Previous
+                  </button>
+                  {pageWindow(page, totalPages).map((pageNumber) => (
+                    <button
+                      type="button"
+                      key={pageNumber}
+                      onClick={() => handlePageChange(pageNumber)}
+                      aria-current={pageNumber === page ? 'page' : undefined}
+                      className={`grid h-10 w-10 place-items-center rounded-xl text-sm font-semibold ${
+                        pageNumber === page
+                          ? 'bg-indigo-500 text-white'
+                          : 'border border-white/10 text-slate-400 hover:bg-white/5'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page === totalPages}
+                    className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 disabled:opacity-30"
+                  >
+                    Next
+                  </button>
+                </nav>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </section>
   );
 };
 

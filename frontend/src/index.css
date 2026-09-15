@@ -6,11 +6,22 @@
 
 @layer base {
   body {
-    @apply bg-gray-900 text-white;
+    @apply bg-[#070912] text-white antialiased;
     font-family: 'Inter', sans-serif;
   }
 
   * {
     @apply box-border;
+  }
+
+  ::selection {
+    @apply bg-indigo-500/40 text-white;
+  }
+
+  button,
+  a,
+  input,
+  select {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070912];
   }
 }

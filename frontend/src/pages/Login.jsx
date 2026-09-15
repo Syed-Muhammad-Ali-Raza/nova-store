@@ -1,67 +1,110 @@
-import React, { useState, useContext } from 'react';
+import { useContext, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { resendVerification } from '../api/auth';
+import { Alert, AuthCard, AuthHeader, AuthLayout, FormField, PrimaryButton } from '../components/AuthUI';
 
 const Login = () => {
+  const { user, login, authenticating } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const resendMutation = useMutation({
+    mutationFn: resendVerification,
+    onSuccess: (data) => setResendMessage(data.message),
+    onError: (requestError) =>
+      setError(requestError.response?.data?.message || 'Unable to resend the verification email.'),
+  });
+
+  if (user) return <Navigate to="/" replace />;
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setResendMessage('');
+    setIsUnverified(false);
     try {
-      await login(email, password);
+      const data = await login(email, password);
+      if (data.pendingTwoFactor) {
+        navigate('/two-factor', { state: { challenge: data.challenge } });
+        return;
+      }
       navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+    } catch (requestError) {
+      const message = requestError.response?.data?.message || 'Unable to sign in. Please try again.';
+      setIsUnverified(message.toLowerCase().includes('verify your email'));
+      setError(message);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
-        <h2 className="text-3xl font-bold text-center text-white mb-8">Welcome Back</h2>
-        {error && <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded mb-6 text-sm">{error}</div>}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              placeholder="you@example.com"
-              required
-            />
+    <AuthLayout>
+      <AuthCard>
+        <AuthHeader title="Welcome back" description="Sign in to continue shopping and manage your orders." />
+        <div className="space-y-4">
+          {error && <Alert>{error}</Alert>}
+          {resendMessage && <Alert tone="success">{resendMessage}</Alert>}
+          {isUnverified && (
+            <Alert tone="info">
+              <div className="flex items-center justify-between gap-3">
+                <span>Your account still needs email verification.</span>
+                <button
+                  type="button"
+                  onClick={() => resendMutation.mutate({ email })}
+                  disabled={resendMutation.isPending}
+                  className="shrink-0 font-semibold text-white underline underline-offset-4 disabled:opacity-50"
+                >
+                  {resendMutation.isPending ? 'Sending…' : 'Resend'}
+                </button>
+              </div>
+            </Alert>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <FormField
+            id="login-email"
+            label="Email address"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+          />
+          <FormField
+            id="login-password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Enter your password"
+            autoComplete="current-password"
+            required
+          />
+          <div className="text-right">
+            <Link to="/forgot-password" className="text-sm font-medium text-indigo-300 hover:text-indigo-200">
+              Forgot password?
+            </Link>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full py-3 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-colors duration-200"
-          >
-            Sign In
-          </button>
+          <PrimaryButton type="submit" disabled={authenticating || !email || !password}>
+            {authenticating ? 'Signing in…' : 'Sign in securely'}
+          </PrimaryButton>
         </form>
-        <p className="mt-6 text-center text-gray-400 text-sm">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-medium">
-            Sign up
+
+        <p className="mt-7 text-center text-sm text-slate-400">
+          New to NovStore?{' '}
+          <Link to="/register" className="font-semibold text-indigo-300 hover:text-indigo-200">
+            Create an account
           </Link>
         </p>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthLayout>
   );
 };
 

@@ -8,14 +8,23 @@ datasource db {
 }
 
 model User {
-  id           Int           @id @default(autoincrement())
-  email        String        @unique
-  passwordHash String
-  role         String        @default("user")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  orders       Order[]
-  activityLogs ActivityLog[]
+  id                        Int           @id @default(autoincrement())
+  email                     String        @unique
+  passwordHash              String
+  role                      String        @default("user")
+  emailVerified             Boolean       @default(false)
+  emailVerificationToken    String?       @unique
+  emailVerificationExpires  DateTime?
+  resetPasswordToken        String?       @unique
+  resetPasswordExpires      DateTime?
+  twoFactorEnabled          Boolean       @default(false)
+  twoFactorChallenge        String?       @unique
+  twoFactorOtp              String?
+  twoFactorChallengeExpires DateTime?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+  orders                    Order[]
+  activityLogs              ActivityLog[]
 }
 
 model Product {

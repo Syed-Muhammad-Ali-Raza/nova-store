@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { logEvent } from '../utils/logger';
 
 export const CartContext = createContext();
@@ -10,9 +10,7 @@ export const CartProvider = ({ children }) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
-        return prev.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
+        return prev.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
       }
       logEvent('ADD_TO_CART', { productId: product.id, productName: product.name });
       return [...prev, { ...product, quantity: 1 }];
@@ -28,13 +26,14 @@ export const CartProvider = ({ children }) => {
       removeFromCart(productId);
       return;
     }
-    setCartItems((prev) =>
-      prev.map((item) => (item.id === productId ? { ...item, quantity } : item))
-    );
+    setCartItems((prev) => prev.map((item) => (item.id === productId ? { ...item, quantity } : item)));
   };
 
   const clearCart = () => {
-    logEvent('CHECKOUT', { totalItems: cartItems.length, totalPrice: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0) });
+    logEvent('CHECKOUT', {
+      totalItems: cartItems.length,
+      totalPrice: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    });
     setCartItems([]);
   };
 

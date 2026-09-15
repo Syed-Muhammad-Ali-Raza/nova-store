@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemon": "^3.1.14",
     "pg": "^8.23.0",
+    "resend": "^6.28.0",
     "stripe": "^22.6.2"
   },
   "devDependencies": {

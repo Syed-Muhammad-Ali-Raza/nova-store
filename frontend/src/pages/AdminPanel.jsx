@@ -1,7 +1,15 @@
-import React, { useState, useContext } from 'react';
+import { useContext, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { logEvent } from '../utils/logger';
-import { useAdminProducts, useAdminLogs, useAdminOrders, useProductCreate, useProductUpdate, useProductDelete, useOrderUpdate } from '../hooks/useAdmin';
+import {
+  useAdminProducts,
+  useAdminLogs,
+  useAdminOrders,
+  useProductCreate,
+  useProductUpdate,
+  useProductDelete,
+  useOrderUpdate,
+} from '../hooks/useAdmin';
 
 const emptyForm = { name: '', description: '', price: '', stock: '', category: '', imageUrl: '' };
 
@@ -117,7 +125,14 @@ const AdminPanel = () => {
 
   const openEditModal = (product) => {
     setEditingProduct(product);
-    setFormData({ name: product.name, description: product.description || '', price: product.price, stock: product.stock, category: product.category, imageUrl: product.imageUrl || '' });
+    setFormData({
+      name: product.name,
+      description: product.description || '',
+      price: product.price,
+      stock: product.stock,
+      category: product.category,
+      imageUrl: product.imageUrl || '',
+    });
     setShowModal(true);
   };
 
@@ -182,12 +197,24 @@ const AdminPanel = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Category</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Price</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Stock</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Deleted</th>
-                  <th className="text-right px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Stock
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Deleted
+                  </th>
+                  <th className="text-right px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
@@ -226,7 +253,7 @@ const AdminPanel = () => {
           {productTotalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-4 mb-6">
               <button
-                onClick={() => setProductPage(p => Math.max(1, p - 1))}
+                onClick={() => setProductPage((p) => Math.max(1, p - 1))}
                 disabled={productPage === 1}
                 className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
               >
@@ -234,7 +261,7 @@ const AdminPanel = () => {
               </button>
               <span className="text-gray-400 text-sm mr-2">{productTotal} products</span>
               <button
-                onClick={() => setProductPage(p => Math.min(productTotalPages, p + 1))}
+                onClick={() => setProductPage((p) => Math.min(productTotalPages, p + 1))}
                 disabled={productPage === productTotalPages}
                 className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
               >
@@ -253,10 +280,18 @@ const AdminPanel = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Metadata</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Time</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Action
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Metadata
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Time
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
@@ -264,22 +299,26 @@ const AdminPanel = () => {
                   <tr key={log.id} className="hover:bg-gray-750 transition-colors">
                     <td className="px-6 py-4 text-gray-300 text-sm">{log.user?.email || 'Unknown'}</td>
                     <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        log.action === 'LOGIN' ? 'bg-green-500/20 text-green-400' :
-                        log.action === 'LOGOUT' ? 'bg-gray-500/20 text-gray-400' :
-                        log.action === 'CHECKOUT' ? 'bg-blue-500/20 text-blue-400' :
-                        log.action.includes('PRODUCT') ? 'bg-purple-500/20 text-purple-400' :
-                        'bg-indigo-500/20 text-indigo-400'
-                      }`}>
+                      <span
+                        className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                          log.action === 'LOGIN'
+                            ? 'bg-green-500/20 text-green-400'
+                            : log.action === 'LOGOUT'
+                              ? 'bg-gray-500/20 text-gray-400'
+                              : log.action === 'CHECKOUT'
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : log.action.includes('PRODUCT')
+                                  ? 'bg-purple-500/20 text-purple-400'
+                                  : 'bg-indigo-500/20 text-indigo-400'
+                        }`}
+                      >
                         {log.action}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-400 text-xs font-mono max-w-xs truncate">
                       {JSON.stringify(log.metadata)}
                     </td>
-                    <td className="px-6 py-4 text-gray-400 text-sm">
-                      {new Date(log.createdAt).toLocaleString()}
-                    </td>
+                    <td className="px-6 py-4 text-gray-400 text-sm">{new Date(log.createdAt).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -288,7 +327,7 @@ const AdminPanel = () => {
           {logTotalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-4 mb-6">
               <button
-                onClick={() => setLogPage(p => Math.max(1, p - 1))}
+                onClick={() => setLogPage((p) => Math.max(1, p - 1))}
                 disabled={logPage === 1}
                 className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
               >
@@ -296,7 +335,7 @@ const AdminPanel = () => {
               </button>
               <span className="text-gray-400 text-sm mr-2">{logTotal} logs</span>
               <button
-                onClick={() => setLogPage(p => Math.min(logTotalPages, p + 1))}
+                onClick={() => setLogPage((p) => Math.min(logTotalPages, p + 1))}
                 disabled={logPage === logTotalPages}
                 className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
               >
@@ -315,7 +354,10 @@ const AdminPanel = () => {
             <div className="flex items-center gap-3">
               <select
                 value={orderStatusFilter}
-                onChange={(e) => { setOrderStatusFilter(e.target.value); setOrderPage(1); }}
+                onChange={(e) => {
+                  setOrderStatusFilter(e.target.value);
+                  setOrderPage(1);
+                }}
                 className="px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="all">All statuses</option>
@@ -333,7 +375,12 @@ const AdminPanel = () => {
                   placeholder="Search ID or tracking…"
                   className="w-56 px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
-                <button type="submit" className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors">Search</button>
+                <button
+                  type="submit"
+                  className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+                >
+                  Search
+                </button>
               </form>
             </div>
           </div>
@@ -341,14 +388,30 @@ const AdminPanel = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Order</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Customer</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Items</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Total</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Payment</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Tracking</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Time</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Order
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Items
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Payment
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Tracking
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Time
+                  </th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
@@ -364,13 +427,17 @@ const AdminPanel = () => {
                             <span>x{item.quantity}</span>
                           </div>
                         ))}
-                        {order.items.length > 3 && <span className="text-gray-500">+{order.items.length - 3} more…</span>}
+                        {order.items.length > 3 && (
+                          <span className="text-gray-500">+{order.items.length - 3} more…</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-white text-sm font-bold">${order.totalAmount.toFixed(2)}</td>
                     <td className="px-6 py-4">
                       <span className="text-gray-400 text-xs block">{order.paymentMethod || '—'}</span>
-                      <span className={`text-xs ${order.paymentStatus === 'paid' ? 'text-green-400' : order.paymentStatus === 'failed' ? 'text-red-400' : 'text-yellow-400'}`}>
+                      <span
+                        className={`text-xs ${order.paymentStatus === 'paid' ? 'text-green-400' : order.paymentStatus === 'failed' ? 'text-red-400' : 'text-yellow-400'}`}
+                      >
                         {order.paymentStatus || '—'}
                       </span>
                     </td>
@@ -378,7 +445,8 @@ const AdminPanel = () => {
                       <input
                         defaultValue={order.trackingNumber || ''}
                         onBlur={(e) => {
-                          if (e.target.value !== (order.trackingNumber || '')) handleTrackingUpdate(order.id, e.target.value);
+                          if (e.target.value !== (order.trackingNumber || ''))
+                            handleTrackingUpdate(order.id, e.target.value);
                         }}
                         placeholder="Add tracking…"
                         className="w-36 px-2 py-1 rounded-lg bg-gray-900 border border-gray-700 text-gray-300 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
@@ -407,15 +475,17 @@ const AdminPanel = () => {
           {orderTotalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-4 mb-6">
               <button
-                onClick={() => setOrderPage(p => Math.max(1, p - 1))}
+                onClick={() => setOrderPage((p) => Math.max(1, p - 1))}
                 disabled={orderPage === 1}
                 className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
               >
                 ← Prev
               </button>
-              <span className="text-gray-400 text-sm mr-2">{orderTotal} orders · Page {orderPage}/{orderTotalPages}</span>
+              <span className="text-gray-400 text-sm mr-2">
+                {orderTotal} orders · Page {orderPage}/{orderTotalPages}
+              </span>
               <button
-                onClick={() => setOrderPage(p => Math.min(orderTotalPages, p + 1))}
+                onClick={() => setOrderPage((p) => Math.min(orderTotalPages, p + 1))}
                 disabled={orderPage === orderTotalPages}
                 className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40 transition-colors text-sm"
               >
@@ -428,11 +498,15 @@ const AdminPanel = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setShowModal(false)}>
-          <div className="bg-gray-800 rounded-2xl border border-gray-700 p-8 max-w-lg w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-2xl font-bold text-white mb-6">
-              {editingProduct ? 'Edit Product' : 'Create Product'}
-            </h2>
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-gray-800 rounded-2xl border border-gray-700 p-8 max-w-lg w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-2xl font-bold text-white mb-6">{editingProduct ? 'Edit Product' : 'Create Product'}</h2>
             <form onSubmit={editingProduct ? handleUpdate : handleCreate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">Name</label>
