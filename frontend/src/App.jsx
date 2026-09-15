@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Products from './pages/Products';
 import AdminPanel from './pages/AdminPanel';
 import CartDrawer from './components/CartDrawer';
+import Checkout from './pages/Checkout';
 
 const Navbar = ({ onCartClick }) => {
   const { user, logout } = useContext(AuthContext);
@@ -116,6 +117,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/" element={<ProtectedLayout />} />
         </Routes>
       </Router>

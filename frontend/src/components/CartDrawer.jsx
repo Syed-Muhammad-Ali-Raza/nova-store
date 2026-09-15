@@ -1,12 +1,17 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 const CartDrawer = ({ isOpen, onClose }) => {
-  const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
+  const navigate = useNavigate();
+
+  const handleCheckout = () => {
+    navigate('/checkout');
+  };
 
   return (
     <>
-      {/* Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
@@ -97,14 +102,11 @@ const CartDrawer = ({ isOpen, onClose }) => {
               <span className="text-gray-400">Subtotal</span>
               <span className="font-bold text-xl">${totalPrice.toFixed(2)}</span>
             </div>
-            <button className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors">
-              Checkout — ${totalPrice.toFixed(2)}
-            </button>
             <button
-              onClick={clearCart}
-              className="w-full py-2 text-gray-400 hover:text-red-400 text-sm transition-colors"
+              onClick={handleCheckout}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors"
             >
-              Clear Cart
+              Checkout — ${totalPrice.toFixed(2)}
             </button>
           </div>
         )}
