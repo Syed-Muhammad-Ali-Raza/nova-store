@@ -93,10 +93,32 @@ const getProductById = async (req, res) => {
 };
 
 // --- Admin Routes ---
+const validateProductInput = (body) => {
+  if (body.name !== undefined && (typeof body.name !== 'string' || !body.name.trim())) {
+    return 'Name must be a non-empty string';
+  }
+  if (body.price !== undefined && (!Number.isFinite(Number(body.price)) || Number(body.price) < 0)) {
+    return 'Price must be a non-negative number';
+  }
+  if (body.stock !== undefined && (!Number.isInteger(Number(body.stock)) || Number(body.stock) < 0)) {
+    return 'Stock must be a non-negative integer';
+  }
+  if (body.category !== undefined && typeof body.category !== 'string') {
+    return 'Category must be a string';
+  }
+  return null;
+};
+
 const createProduct = async (req, res) => {
   try {
     const { name, description, price, stock, imageUrl, category } = req.body;
-    if (!name || !price) return res.status(400).json({ message: 'Name and price are required' });
+    if (typeof name !== 'string' || !name.trim() || typeof price === 'undefined' || !Number.isFinite(Number(price))) {
+      return res.status(400).json({ message: 'Name and a valid price are required' });
+    }
+    const validationError = validateProductInput({ name, price, stock, category });
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
     const product = await prisma.product.create({
       data: { name, description: description || '', price: parseFloat(price), stock: parseInt(stock) || 0, imageUrl, category: category || 'General' },
     });
@@ -110,16 +132,21 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { name, description, price, stock, imageUrl, category } = req.body;
+    const data = {
+      ...(name !== undefined && { name }),
+      ...(description !== undefined && { description }),
+      ...(price !== undefined && { price: parseFloat(price) }),
+      ...(stock !== undefined && { stock: parseInt(stock) }),
+      ...(imageUrl !== undefined && { imageUrl }),
+      ...(category !== undefined && { category }),
+    };
+    const validationError = validateProductInput({ name: data.name, price: data.price, stock: data.stock, category: data.category });
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
     const product = await prisma.product.update({
       where: { id: parseInt(req.params.id) },
-      data: {
-        ...(name && { name }),
-        ...(description !== undefined && { description }),
-        ...(price !== undefined && { price: parseFloat(price) }),
-        ...(stock !== undefined && { stock: parseInt(stock) }),
-        ...(imageUrl !== undefined && { imageUrl }),
-        ...(category && { category }),
-      },
+      data,
     });
     res.json(product);
   } catch (error) {

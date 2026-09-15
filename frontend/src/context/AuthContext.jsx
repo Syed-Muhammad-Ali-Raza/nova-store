@@ -1,51 +1,62 @@
-import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { createContext } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getMe, login as loginApi, register as registerApi, logout as logoutApi } from '../api/auth';
+import { queryKeys } from '../api/queryKeys';
 import { logEvent } from '../utils/logger';
-import { API_URL } from '../utils/api';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  axios.defaults.withCredentials = true;
+  const meQuery = useQuery({
+    queryKey: queryKeys.auth.me(),
+    queryFn: getMe,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/auth/me`);
-        setUser(res.data.user);
-      } catch (error) {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkUser();
-  }, []);
+  const loginMutation = useMutation({
+    mutationFn: loginApi,
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.auth.me(), { user: data.user });
+      logEvent('LOGIN', { email: data.user?.email });
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: registerApi,
+    onSuccess: (data) => {
+      logEvent('REGISTER', { email: data.userId });
+    },
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: logoutApi,
+    onSettled: () => {
+      queryClient.setQueryData(queryKeys.auth.me(), () => undefined);
+      queryClient.clear();
+    },
+  });
 
   const login = async (email, password) => {
-    const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
-    setUser(res.data.user);
-    logEvent('LOGIN', { email });
-    return res.data;
+    return loginMutation.mutateAsync({ email, password });
   };
 
   const register = async (email, password) => {
-    const res = await axios.post(`${API_URL}/api/auth/register`, { email, password });
-    logEvent('REGISTER', { email });
-    return res.data;
+    return registerMutation.mutateAsync({ email, password });
   };
 
   const logout = async () => {
-    await axios.post(`${API_URL}/api/auth/logout`);
+    const res = await logoutMutation.mutateAsync();
     logEvent('LOGOUT', {});
-    setUser(null);
+    return res;
   };
 
+  const user = meQuery.data?.user ?? null;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading: meQuery.isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { API_URL } from '../utils/api';
 import { logEvent } from '../utils/logger';
 import { useCart } from '../context/CartContext';
+import { usePlaceOrder } from '../hooks/useOrders';
+import { useCreatePaymentIntent } from '../hooks/usePayments';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const CheckoutForm = ({ total, cartItems, onSuccess }) => {
+const CheckoutForm = ({ total, cartItems, createPaymentIntent, placeOrder, onSuccess }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -21,8 +21,7 @@ const CheckoutForm = ({ total, cartItems, onSuccess }) => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post(`${API_URL}/api/payment/intent`, { amount: total });
-      const { clientSecret, paymentIntentId } = res.data;
+      const { clientSecret, paymentIntentId } = await createPaymentIntent({ amount: total });
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: { card: elements.getElement(CardElement) },
       });
@@ -31,7 +30,7 @@ const CheckoutForm = ({ total, cartItems, onSuccess }) => {
         setLoading(false);
         return;
       }
-      await axios.post(`${API_URL}/api/orders`, { cartItems, paymentMethod: 'stripe', paymentIntentId });
+      await placeOrder({ cartItems, paymentMethod: 'stripe', paymentIntentId });
       onSuccess();
     } catch (err) {
       setError(err.response?.data?.message || 'Payment failed');
@@ -64,27 +63,26 @@ const CheckoutForm = ({ total, cartItems, onSuccess }) => {
 const Checkout = () => {
   const navigate = useNavigate();
   const { cartItems, clearCart } = useCart();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('stripe');
 
+  const placeOrderMutation = usePlaceOrder();
+  const createIntentMutation = useCreatePaymentIntent();
+
   const total = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleCOD = async () => {
     try {
-      setLoading(true);
       setError('');
-      const res = await axios.post(`${API_URL}/api/orders`, { cartItems, paymentMethod: 'cod' });
+      const res = await placeOrderMutation.mutateAsync({ cartItems, paymentMethod: 'cod' });
       clearCart();
       setSuccess(true);
-      setOrderId(res.data.id);
-      logEvent('CHECKOUT', { orderId: res.data.id, totalItems: cartItems.length });
+      setOrderId(res.id);
+      logEvent('CHECKOUT', { orderId: res.id, totalItems: cartItems.length });
     } catch (err) {
       setError(err.response?.data?.message || 'Checkout failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -162,11 +160,17 @@ const Checkout = () => {
 
             {paymentMethod === 'stripe' ? (
               <Elements stripe={stripePromise}>
-                <CheckoutForm total={total} cartItems={cartItems} onSuccess={() => { setSuccess(true); clearCart(); }} />
+                <CheckoutForm
+                  total={total}
+                  cartItems={cartItems}
+                  createPaymentIntent={(payload) => createIntentMutation.mutateAsync(payload)}
+                  placeOrder={(payload) => placeOrderMutation.mutateAsync(payload)}
+                  onSuccess={() => { setSuccess(true); clearCart(); }}
+                />
               </Elements>
             ) : (
-              <button onClick={handleCOD} disabled={loading} className="w-full py-4 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors text-lg">
-                {loading ? 'Processing...' : `Place Order — $${total.toFixed(2)}`}
+              <button onClick={handleCOD} disabled={placeOrderMutation.isPending} className="w-full py-4 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors text-lg">
+                {placeOrderMutation.isPending ? 'Processing...' : `Place Order — $${total.toFixed(2)}`}
               </button>
             )}
 

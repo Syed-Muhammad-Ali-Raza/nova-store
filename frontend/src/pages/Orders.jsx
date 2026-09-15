@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { API_URL } from '../utils/api';
+import { useMyOrders } from '../hooks/useOrders';
 
 const statusColor = (status) => {
   switch (status) {
@@ -24,29 +23,13 @@ const paymentLabel = (method) => {
 };
 
 const Orders = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/api/orders?page=${page}&limit=10`);
-      setOrders(res.data.orders);
-      setTotal(res.data.total);
-      setTotalPages(res.data.totalPages);
-    } catch (err) {
-      console.error('Failed to fetch orders');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, isLoading } = useMyOrders({ page, limit: 10 });
 
-  useEffect(() => {
-    fetchOrders();
-  }, [page]);
+  const orders = data?.orders ?? [];
+  const totalPages = data?.totalPages ?? 1;
+  const total = data?.total ?? 0;
 
   return (
     <div>
@@ -55,7 +38,7 @@ const Orders = () => {
         <p className="text-gray-400">Track and review your purchase history.</p>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-20">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
         </div>

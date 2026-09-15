@@ -1,71 +1,51 @@
-import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { logEvent } from '../utils/logger';
-import { API_URL } from '../utils/api';
+import { useAdminProducts, useAdminLogs, useAdminOrders, useProductCreate, useProductUpdate, useProductDelete, useOrderUpdate } from '../hooks/useAdmin';
+
+const emptyForm = { name: '', description: '', price: '', stock: '', category: '', imageUrl: '' };
 
 const AdminPanel = () => {
   const { user, logout } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('products');
-  const [products, setProducts] = useState([]);
-  const [logs, setLogs] = useState([]);
-  const [orders, setOrders] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', price: '', stock: '', category: '', imageUrl: '' });
+  const [formData, setFormData] = useState(emptyForm);
   const [productPage, setProductPage] = useState(1);
-  const [productTotalPages, setProductTotalPages] = useState(1);
   const [logPage, setLogPage] = useState(1);
-  const [logTotalPages, setLogTotalPages] = useState(1);
-  const [productTotal, setProductTotal] = useState(0);
-  const [logTotal, setLogTotal] = useState(0);
   const [orderPage, setOrderPage] = useState(1);
-  const [orderTotalPages, setOrderTotalPages] = useState(1);
-  const [orderTotal, setOrderTotal] = useState(0);
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
 
-  const fetchProducts = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/admin/products?page=${productPage}&limit=12`);
-      const data = res.data;
-      setProducts(data.products);
-      setProductTotal(data.total);
-      setProductTotalPages(data.totalPages);
-    } catch (err) {
-      console.error('Failed to fetch products');
-    }
-  };
+  const productsQuery = useAdminProducts({ page: productPage, limit: 12 }, { enabled: activeTab === 'products' });
+  const logsQuery = useAdminLogs({ page: logPage, limit: 20 }, { enabled: activeTab === 'logs' });
+  const ordersQuery = useAdminOrders(
+    { page: orderPage, limit: 10, status: orderStatusFilter, search: appliedSearch },
+    { enabled: activeTab === 'orders' }
+  );
 
-  const fetchLogs = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/admin/logs?page=${logPage}&limit=20`);
-      const data = res.data;
-      setLogs(data.logs);
-      setLogTotal(data.total);
-      setLogTotalPages(data.totalPages);
-    } catch (err) {
-      console.error('Failed to fetch logs');
-    }
-  };
+  const productCreate = useProductCreate();
+  const productUpdate = useProductUpdate();
+  const productDelete = useProductDelete();
+  const orderUpdate = useOrderUpdate();
 
-  const fetchOrders = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/admin/orders?page=${orderPage}&limit=10&status=${orderStatusFilter}&search=${orderSearch}`);
-      const data = res.data;
-      setOrders(data.orders);
-      setOrderTotal(data.total);
-      setOrderTotalPages(data.totalPages);
-    } catch (err) {
-      console.error('Failed to fetch orders');
-    }
-  };
+  const products = productsQuery.data?.products ?? [];
+  const productTotal = productsQuery.data?.total ?? 0;
+  const productTotalPages = productsQuery.data?.totalPages ?? 1;
+
+  const logs = logsQuery.data?.logs ?? [];
+  const logTotal = logsQuery.data?.total ?? 0;
+  const logTotalPages = logsQuery.data?.totalPages ?? 1;
+
+  const orders = ordersQuery.data?.orders ?? [];
+  const orderTotal = ordersQuery.data?.total ?? 0;
+  const orderTotalPages = ordersQuery.data?.totalPages ?? 1;
 
   const handleStatusUpdate = async (id, status) => {
     try {
-      await axios.put(`${API_URL}/api/admin/orders/${id}`, { status });
+      await orderUpdate.mutateAsync({ id, status });
       logEvent('UPDATE_ORDER', { orderId: id, status });
-      fetchOrders();
     } catch (err) {
       console.error('Failed to update order status');
     }
@@ -73,9 +53,8 @@ const AdminPanel = () => {
 
   const handleTrackingUpdate = async (id, trackingNumber) => {
     try {
-      await axios.put(`${API_URL}/api/admin/orders/${id}`, { trackingNumber });
+      await orderUpdate.mutateAsync({ id, trackingNumber });
       logEvent('UPDATE_TRACKING', { orderId: id, trackingNumber });
-      fetchOrders();
     } catch (err) {
       console.error('Failed to update tracking number');
     }
@@ -83,27 +62,20 @@ const AdminPanel = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setAppliedSearch(orderSearch.trim());
     setOrderPage(1);
-    fetchOrders();
   };
-
-  useEffect(() => {
-    if (activeTab === 'products') fetchProducts();
-    if (activeTab === 'logs') fetchLogs();
-    if (activeTab === 'orders') fetchOrders();
-  }, [activeTab, productPage, logPage, orderPage, orderStatusFilter]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_URL}/api/admin/products`, {
+      await productCreate.mutateAsync({
         ...formData,
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
       });
       setShowModal(false);
-      setFormData({ name: '', description: '', price: '', stock: '', category: '', imageUrl: '' });
-      fetchProducts();
+      setFormData(emptyForm);
       logEvent('ADD_PRODUCT', { productName: formData.name });
     } catch (err) {
       console.error('Failed to create product');
@@ -113,15 +85,15 @@ const AdminPanel = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`${API_URL}/api/admin/products/${editingProduct.id}`, {
+      await productUpdate.mutateAsync({
+        id: editingProduct.id,
         ...formData,
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
       });
       setShowModal(false);
       setEditingProduct(null);
-      setFormData({ name: '', description: '', price: '', stock: '', category: '', imageUrl: '' });
-      fetchProducts();
+      setFormData(emptyForm);
       logEvent('UPDATE_PRODUCT', { productId: editingProduct.id });
     } catch (err) {
       console.error('Failed to update product');
@@ -130,8 +102,7 @@ const AdminPanel = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_URL}/api/admin/products/${id}`);
-      fetchProducts();
+      await productDelete.mutateAsync(id);
       logEvent('DELETE_PRODUCT', { productId: id });
     } catch (err) {
       console.error('Failed to delete product');
@@ -140,7 +111,7 @@ const AdminPanel = () => {
 
   const openCreateModal = () => {
     setEditingProduct(null);
-    setFormData({ name: '', description: '', price: '', stock: '', category: '', imageUrl: '' });
+    setFormData(emptyForm);
     setShowModal(true);
   };
 

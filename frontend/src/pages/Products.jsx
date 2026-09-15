@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import FilterSidebar from '../components/FilterSidebar';
-import { logEvent } from '../utils/logger';
-import { API_URL } from '../utils/api';
+import { useProducts } from '../hooks/useProducts';
 
 const ProductCard = ({ product }) => {
   const { addToCart, cartItems } = useCart();
@@ -61,42 +59,14 @@ const ProductCard = ({ product }) => {
 const defaultFilters = { search: '', category: '', minPrice: '', maxPrice: '', inStock: '', sortBy: 'newest' };
 
 const ProductsPage = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [filters, setFilters] = useState(defaultFilters);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const params = new URLSearchParams();
-        if (filters.search) params.set('search', filters.search);
-        if (filters.category) params.set('category', filters.category);
-        if (filters.minPrice) params.set('minPrice', filters.minPrice);
-        if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
-        if (filters.inStock) params.set('inStock', filters.inStock);
-        if (filters.sortBy && filters.sortBy !== 'newest') params.set('sortBy', filters.sortBy);
-        params.set('page', page);
-        params.set('limit', 12);
+  const { data, isLoading, isError } = useProducts({ ...filters, page, limit: 12 });
 
-        const res = await axios.get(`${API_URL}/api/products?${params.toString()}`);
-        const data = res.data;
-        setProducts(data.products);
-        setTotal(data.total);
-        setTotalPages(data.totalPages);
-        setPage(data.page);
-      } catch (err) {
-        setError('Failed to load products. Is the backend running?');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, [filters, page]);
+  const products = data?.products ?? [];
+  const totalPages = data?.totalPages ?? 1;
+  const total = data?.total ?? 0;
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -114,14 +84,16 @@ const ProductsPage = () => {
           {filters.search && <span className="text-indigo-400 ml-2 text-sm font-normal">— "{filters.search}"</span>}
           <span className="text-gray-500 ml-2 text-sm font-normal">({total} results)</span>
         </h2>
-        {loading ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-gray-800 rounded-2xl h-80 animate-pulse border border-gray-700" />
             ))}
           </div>
-        ) : error ? (
-          <div className="text-red-400 bg-red-500/10 border border-red-500/50 rounded-xl p-4">{error}</div>
+        ) : isError ? (
+          <div className="text-red-400 bg-red-500/10 border border-red-500/50 rounded-xl p-4">
+            Failed to load products. Is the backend running?
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
