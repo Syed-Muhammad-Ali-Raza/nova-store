@@ -8,6 +8,7 @@ const productRoutes = require('./routes/product.routes');
 const logRoutes = require('./routes/log.routes');
 const adminRoutes = require('./routes/admin.routes');
 const orderRoutes = require('./routes/order.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,6 +18,7 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -26,6 +28,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
