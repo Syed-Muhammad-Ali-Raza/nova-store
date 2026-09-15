@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet } from 'react-router-dom';
 import { AuthContext } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
 import Login from './pages/Login';
@@ -8,6 +8,7 @@ import Products from './pages/Products';
 import AdminPanel from './pages/AdminPanel';
 import CartDrawer from './components/CartDrawer';
 import Checkout from './pages/Checkout';
+import Orders from './pages/Orders';
 
 const Navbar = ({ onCartClick }) => {
   const { user, logout } = useContext(AuthContext);
@@ -26,6 +27,13 @@ const Navbar = ({ onCartClick }) => {
         </Link>
 
         <div className="flex items-center gap-4">
+          <Link
+            to="/orders"
+            className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-sm font-medium transition-colors border border-gray-700"
+          >
+            My Orders
+          </Link>
+
           {user && (
             <span className="text-gray-400 text-sm hidden sm:block">
               {user.email}
@@ -72,6 +80,22 @@ const Navbar = ({ onCartClick }) => {
   );
 };
 
+const Home = () => {
+  return (
+    <>
+      <div className="mb-10 rounded-2xl bg-gradient-to-r from-indigo-900/50 via-purple-900/30 to-gray-900 border border-indigo-800/40 p-8">
+        <h1 className="text-4xl font-bold text-white mb-2">
+          Welcome to <span className="text-indigo-400">NovStore</span>
+        </h1>
+        <p className="text-gray-400 text-lg">Discover premium products curated just for you.</p>
+      </div>
+
+      <h2 className="text-2xl font-bold text-white mb-6">Featured Products</h2>
+      <Products />
+    </>
+  );
+};
+
 const ProtectedLayout = () => {
   const { user } = useContext(AuthContext);
   const [cartOpen, setCartOpen] = useState(false);
@@ -84,16 +108,7 @@ const ProtectedLayout = () => {
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-6 py-10">
-        {/* Hero Banner */}
-        <div className="mb-10 rounded-2xl bg-gradient-to-r from-indigo-900/50 via-purple-900/30 to-gray-900 border border-indigo-800/40 p-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Welcome to <span className="text-indigo-400">NovStore</span>
-          </h1>
-          <p className="text-gray-400 text-lg">Discover premium products curated just for you.</p>
-        </div>
-
-        <h2 className="text-2xl font-bold text-white mb-6">Featured Products</h2>
-        <Products />
+        <Outlet />
       </main>
     </div>
   );
@@ -118,7 +133,10 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/checkout" element={<Checkout />} />
-          <Route path="/" element={<ProtectedLayout />} />
+          <Route path="/" element={<ProtectedLayout />}>
+            <Route index element={<Home />} />
+            <Route path="orders" element={<Orders />} />
+          </Route>
         </Routes>
       </Router>
     </CartProvider>

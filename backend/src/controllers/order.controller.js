@@ -80,4 +80,57 @@ const getOrders = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getOrders };
+const getAllOrders = async (req, res) => {
+  try {
+    const { page = 1, limit = 12, search, status } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const where = {};
+
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+    if (search) {
+      const OR = [];
+      const numId = parseInt(search);
+      if (!isNaN(numId)) OR.push({ id: numId });
+      OR.push({ trackingNumber: { contains: search, mode: 'insensitive' } });
+      where.OR = OR;
+    }
+
+    const total = await prisma.order.count({ where });
+    const orders = await prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { id: true, email: true } }, items: true },
+      skip,
+      take: parseInt(limit),
+    });
+    res.json({ orders, total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const updateOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, paymentStatus, trackingNumber } = req.body;
+
+    const order = await prisma.order.update({
+      where: { id: parseInt(id) },
+      data: {
+        ...(status && { status }),
+        ...(paymentStatus && { paymentStatus }),
+        ...(trackingNumber !== undefined && { trackingNumber }),
+      },
+      include: { items: true },
+    });
+    res.json(order);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = { createOrder, getOrders, getAllOrders, updateOrderStatus };
